@@ -11,6 +11,13 @@ import {
   StyleSheet,
   View,
   ViewStyle,
+  Keyboard,
+  TextInput,
+  UIManager,
+  TouchableOpacity,
+  TouchableHighlight,
+  TouchableNativeFeedback,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import Animated, {
   abs,
@@ -44,6 +51,11 @@ import {
   PanGestureHandlerProperties,
   State as GestureState,
   TapGestureHandler,
+  TouchableOpacity as RNGHTouchableOpacity,
+  TouchableHighlight as RNGHTouchableHighlight,
+  TouchableNativeFeedback as RNGHTouchableNativeFeedback,
+  TouchableWithoutFeedback as RNGHTouchableWithoutFeedback,
+  FlatList as RNGHFlatList,
 } from 'react-native-gesture-handler';
 import { Assign } from 'utility-types';
 
@@ -124,9 +136,21 @@ type CommonProps = {
    */
   initialSnapIndex: number;
   /**
+   * should bottomsheet adjust itself on keyboard show/hide
+   */
+  keyboardAwared: boolean;
+  /**
+   * offset between the keyboard top and the input field after keyboard adjustment
+   */
+  keyboardTopOffset: number;
+  /**
    * Render prop for the handle
    */
   renderHandle: () => React.ReactNode;
+  /**
+   * Render prop for the footer
+   */
+  renderFooter: () => React.ReactNode;
   /**
    * Callback that is executed right after the drawer settles on one of the snapping points.
    * The new index is provided on the callback
@@ -170,6 +194,9 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
   static defaultProps = {
     topInset: 0,
     innerRef: React.createRef<AnimatedScrollableComponent>(),
+    keyboardAwared: true,
+    keyboardTopOffset: 16,
+    renderFooter: () => null,
   };
   /**
    * Gesture Handler references
@@ -205,6 +232,10 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
    */
   private manualYOffset: Animated.Value<number> = new Value(0);
   /**
+   * Flag to indicate offset locking
+   */
+  private lockYOffset: Animated.Value<number> = new Value(0);
+  /**
    * Keeps track of the current index
    */
   private nextSnapIndex: Animated.Value<number>;
@@ -213,7 +244,7 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
    * compensate the unexpected glide it gets sometimes.
    */
   private decelerationRate: Animated.Value<number>;
-  private prevSnapIndex = -1;
+  private prevSnapIndex = this.props.initialSnapIndex;
   private dragY = new Value(0);
   private prevDragY = new Value(0);
   private tempDestSnapPoint = new Value(0);
@@ -227,6 +258,9 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
   private prevTranslateYOffset: Animated.Value<number>;
   private translationY: Animated.Value<number>;
   private destSnapPoint = new Value(0);
+  private kb_show = null;
+  private kb_hide = null;
+  private footerHeight = 0;
 
   private lastSnap: Animated.Value<number>;
   private dragWithHandle = new Value(0);
@@ -540,13 +574,14 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
       )
     );
 
-    this.translateY = interpolate(
-      add(translateYOffset, this.dragY, multiply(scrollY, -1)),
-      {
+    this.translateY = cond(
+      this.lockYOffset,
+      this.lockYOffset,
+      interpolate(add(translateYOffset, this.dragY, multiply(scrollY, -1)), {
         inputRange: [openPosition, closedPosition],
         outputRange: [openPosition, closedPosition],
         extrapolate: Extrapolate.CLAMP,
-      }
+      })
     );
 
     this.position = interpolate(this.translateY, {
@@ -591,6 +626,38 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
     this.manualYOffset.setValue(snapPoints[index]);
     this.nextSnapIndex.setValue(index);
   };
+
+  componentDidMount() {
+    if (this.props.keyboardAwared) {
+      this.kb_show = Keyboard.addListener('keyboardDidShow', event => {
+        const offset =
+          this.props.keyboardTopOffset +
+          Platform.select({ ios: 0, android: this.footerHeight });
+        const keyboardHeight = event.endCoordinates.height;
+        const currentlyFocusedField = TextInput.State.currentlyFocusedField();
+        UIManager.measure(
+          currentlyFocusedField,
+          (originX, originY, width, height, pageX, pageY) => {
+            const gap =
+              windowHeight - (pageY + height + offset) - keyboardHeight;
+            const snapPoints = this.getNormalisedSnapPoints();
+            if (gap < 0)
+              this.lockYOffset.setValue(snapPoints[this.prevSnapIndex] + gap);
+          }
+        );
+      });
+
+      this.kb_hide = Keyboard.addListener('keyboardDidHide', () => {
+        this.lockYOffset.setValue(0);
+        this.snapTo(this.prevSnapIndex);
+      });
+    }
+  }
+
+  componentWillUnmount() {
+    this.kb_show?.remove();
+    this.kb_hide?.remove();
+  }
 
   render() {
     const {
@@ -695,16 +762,8 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
                   const { method, args } = imperativeScrollOptions[
                     this.props.componentType
                   ];
-                  if (
-                    (this.props.componentType === 'FlatList' &&
-                      (this.props?.data?.length || 0) > 0) ||
-                    (this.props.componentType === 'SectionList' &&
-                      this.props.sections.length > 0) ||
-                    this.props.componentType === 'ScrollView'
-                  ) {
-                    // @ts-ignore
-                    this.props.innerRef.current?.getNode()[method](args);
-                  }
+                  // @ts-ignore
+                  this.props.innerRef.current?.getNode()[method](args);
                 })
               ),
               set(this.dragY, 0),
@@ -765,10 +824,11 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
       </Animated.View>
     );
 
+    let WrappedContent;
     // On Android, having an intermediary view with pointerEvents="box-none", breaks the
     // waitFor logic
-    if (Platform.OS === 'android') {
-      return (
+    if (Platform.OS === 'android')
+      WrappedContent = (
         <TapGestureHandler
           maxDurationMs={100000}
           ref={this.masterDrawer}
@@ -778,21 +838,37 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
           {Content}
         </TapGestureHandler>
       );
-    }
-
     // On iOS, We need to wrap the content on a view with PointerEvents box-none
     // So that we can start scrolling automatically when reaching the top without
     // Stopping the gesture
+    else
+      WrappedContent = (
+        <TapGestureHandler
+          maxDurationMs={100000}
+          ref={this.masterDrawer}
+          maxDeltaY={initialSnap - this.getNormalisedSnapPoints()[0]}
+        >
+          <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
+            {Content}
+          </View>
+        </TapGestureHandler>
+      );
+
     return (
-      <TapGestureHandler
-        maxDurationMs={100000}
-        ref={this.masterDrawer}
-        maxDeltaY={initialSnap - this.getNormalisedSnapPoints()[0]}
-      >
-        <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
-          {Content}
+      <>
+        {WrappedContent}
+        <View
+          onLayout={e => (this.footerHeight = e.nativeEvent.layout.height)}
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 0,
+          }}
+        >
+          <View style={{ flex: 1 }}>{this.props.renderFooter()}</View>
         </View>
-      </TapGestureHandler>
+      </>
     );
   }
 }
@@ -804,3 +880,37 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+
+export const BSTouchableOpacity = props => {
+  if (Platform.OS === 'android') {
+    return <RNGHTouchableOpacity {...props} />;
+  }
+
+  return <TouchableOpacity {...props} />;
+};
+
+export const BSTouchableHightlight = props => {
+  if (Platform.OS === 'android') {
+    return <RNGHTouchableHighlight {...props} />;
+  }
+
+  return <TouchableHighlight {...props} />;
+};
+
+export const BSTouchableNativeFeedback = props => {
+  if (Platform.OS === 'android') {
+    return <RNGHTouchableNativeFeedback {...props} />;
+  }
+
+  return <TouchableNativeFeedback {...props} />;
+};
+
+export const BSTouchableWithoutFeedback = props => {
+  if (Platform.OS === 'android') {
+    return <RNGHTouchableWithoutFeedback {...props} />;
+  }
+
+  return <TouchableWithoutFeedback {...props} />;
+};
+
+export const BSFlatList = RNGHFlatList;
