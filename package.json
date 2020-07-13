@@ -28,13 +28,7 @@
     "cross-platform",
     "60FPS"
   ],
-  "repository": "https://github.com/rgommezz/react-native-scroll-bottom-sheet",
-  "author": "Raul Gomez Acuña <raulgdeveloper@gmail.com> (https://github.com/rgommezz)",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/rgommezz/react-native-scroll-bottom-sheet/issues"
-  },
-  "homepage": "https://github.com/rgommezz/react-native-scroll-bottom-sheet#readme",
   "peerDependencies": {
     "react": "*",
     "react-native": "*",
@@ -62,19 +56,6 @@
     "react-native-reanimated": "^1.8.0",
     "release-it": "^12.6.3",
     "typescript": "^3.7.5"
-  },
-  "jest": {
-    "preset": "react-native",
-    "modulePathIgnorePatterns": [
-      "<rootDir>/example/node_modules",
-      "<rootDir>/lib/"
-    ]
-  },
-  "husky": {
-    "hooks": {
-      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS",
-      "pre-commit": "yarn lint && yarn typescript"
-    }
   },
   "eslintConfig": {
     "extends": [
@@ -105,23 +86,6 @@
     "tabWidth": 2,
     "trailingComma": "es5",
     "useTabs": false
-  },
-  "release-it": {
-    "git": {
-      "commitMessage": "chore: release %s",
-      "tagName": "v%s"
-    },
-    "npm": {
-      "publish": true
-    },
-    "github": {
-      "release": true
-    },
-    "plugins": {
-      "@release-it/conventional-changelog": {
-        "preset": "angular"
-      }
-    }
   },
   "@react-native-community/bob": {
     "source": "src",
