@@ -13,6 +13,7 @@
   "scripts": {
     "test": "jest",
     "typescript": "tsc --noEmit",
+    "build": "tsc",
     "lint": "eslint --ext .js,.ts,.tsx .",
     "prepare": "bob build",
     "release": "release-it",

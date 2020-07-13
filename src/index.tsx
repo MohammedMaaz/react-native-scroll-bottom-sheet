@@ -1,3 +1,4 @@
+//@ts-nocheck
 import React, { Component, RefObject } from 'react';
 import {
   Dimensions,
