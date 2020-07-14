@@ -261,7 +261,7 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
   private destSnapPoint = new Value(0);
   private kb_show = null;
   private kb_hide = null;
-  private footerHeight: Animated.Value<number> = new Value(0);
+  private footerHeight: Animated.Value<number> = new Value(0); //footer height of stick footer
 
   private lastSnap: Animated.Value<number>;
   private dragWithHandle = new Value(0);
