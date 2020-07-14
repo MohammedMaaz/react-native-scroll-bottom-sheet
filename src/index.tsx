@@ -261,7 +261,7 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
   private destSnapPoint = new Value(0);
   private kb_show = null;
   private kb_hide = null;
-  private footerHeight = 0;
+  private footerHeight: Animated.Value<number> = new Value(0);
 
   private lastSnap: Animated.Value<number>;
   private dragWithHandle = new Value(0);
@@ -633,7 +633,7 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
       this.kb_show = Keyboard.addListener('keyboardDidShow', event => {
         const offset =
           this.props.keyboardTopOffset +
-          Platform.select({ ios: 0, android: this.footerHeight });
+          Platform.select({ ios: 0, android: this.footerHeight._value });
         const keyboardHeight = event.endCoordinates.height;
         const currentlyFocusedField = TextInput.State.currentlyFocusedField();
         UIManager.measure(
@@ -683,6 +683,7 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
           // @ts-ignore
           {
             transform: [{ translateY: this.translateY }],
+            paddingBottom: this.footerHeight,
           },
         ]}
       >
@@ -868,7 +869,9 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
       <>
         {WrappedContent}
         <View
-          onLayout={e => (this.footerHeight = e.nativeEvent.layout.height)}
+          onLayout={e =>
+            this.footerHeight.setValue(e.nativeEvent.layout.height)
+          }
           style={{
             position: 'absolute',
             left: 0,
