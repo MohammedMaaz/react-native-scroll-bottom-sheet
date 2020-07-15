@@ -1,3 +1,4 @@
+//@ts-nocheck
 import React, { Component } from 'react';
 import { Dimensions, FlatList, Platform, ScrollView, SectionList, StyleSheet, View, Keyboard, TextInput, UIManager, TouchableOpacity, TouchableHighlight, TouchableNativeFeedback, TouchableWithoutFeedback, } from 'react-native';
 import Animated, { abs, add, and, call, Clock, clockRunning, cond, Easing, eq, event, Extrapolate, greaterOrEq, greaterThan, interpolate, multiply, not, onChange, or, set, startClock, stopClock, sub, timing, Value, } from 'react-native-reanimated';
@@ -76,7 +77,7 @@ export class ScrollBottomSheet extends Component {
         this.destSnapPoint = new Value(0);
         this.kb_show = null;
         this.kb_hide = null;
-        this.footerHeight = 0;
+        this.footerHeight = new Value(0); //footer height of stick footer
         this.dragWithHandle = new Value(0);
         this.scrollUpAndPullDown = new Value(0);
         this.convertPercentageToDp = (str) => (Number(str.split('%')[0]) * (windowHeight - this.props.topInset)) / 100;
@@ -292,7 +293,7 @@ export class ScrollBottomSheet extends Component {
         if (this.props.keyboardAwared) {
             this.kb_show = Keyboard.addListener('keyboardDidShow', event => {
                 const offset = this.props.keyboardTopOffset +
-                    Platform.select({ ios: 0, android: this.footerHeight });
+                    Platform.select({ ios: 0, android: this.footerHeight._value });
                 const keyboardHeight = event.endCoordinates.height;
                 const currentlyFocusedField = TextInput.State.currentlyFocusedField();
                 UIManager.measure(currentlyFocusedField, (originX, originY, width, height, pageX, pageY) => {
@@ -323,6 +324,7 @@ export class ScrollBottomSheet extends Component {
                 // @ts-ignore
                 {
                     transform: [{ translateY: this.translateY }],
+                    paddingBottom: this.footerHeight,
                 },
             ] },
             React.createElement(PanGestureHandler, { ref: this.drawerHandleRef, shouldCancelWhenOutside: false, simultaneousHandlers: this.masterDrawer, onGestureEvent: this.onHandleGestureEvent, onHandlerStateChange: this.onHandleGestureEvent },
@@ -396,7 +398,7 @@ export class ScrollBottomSheet extends Component {
                 React.createElement(View, { style: StyleSheet.absoluteFillObject, pointerEvents: "box-none" }, Content)));
         return (React.createElement(React.Fragment, null,
             WrappedContent,
-            React.createElement(View, { onLayout: e => (this.footerHeight = e.nativeEvent.layout.height), style: {
+            React.createElement(View, { onLayout: e => this.footerHeight.setValue(e.nativeEvent.layout.height), style: {
                     position: 'absolute',
                     left: 0,
                     right: 0,
