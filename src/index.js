@@ -62,6 +62,10 @@ export class ScrollBottomSheet extends Component {
         /**
          * Flag to indicate offset locking
          */
+        this.isLockYOffset = new Value(0);
+        /**
+         * lockYOffset value
+         */
         this.lockYOffset = new Value(0);
         this.prevSnapIndex = this.props.initialSnapIndex;
         this.dragY = new Value(0);
@@ -77,7 +81,8 @@ export class ScrollBottomSheet extends Component {
         this.destSnapPoint = new Value(0);
         this.kb_show = null;
         this.kb_hide = null;
-        this.footerHeight = new Value(0); //footer height of stick footer
+        this.footerHeightAnim = new Value(0); //footer height of stick footer
+        this.footerHeight = 0;
         this.dragWithHandle = new Value(0);
         this.scrollUpAndPullDown = new Value(0);
         this.convertPercentageToDp = (str) => (Number(str.split('%')[0]) * (windowHeight - this.props.topInset)) / 100;
@@ -109,6 +114,14 @@ export class ScrollBottomSheet extends Component {
             this.isManuallySetValue.setValue(1);
             this.manualYOffset.setValue(snapPoints[index]);
             this.nextSnapIndex.setValue(index);
+        };
+        this.lockToOffset = offset => {
+            this.isLockYOffset.setValue(1);
+            this.lockYOffset.setValue(offset);
+            this.prevTranslateYOffset.setValue(offset);
+        };
+        this.releaseLock = () => {
+            this.isLockYOffset.setValue(0);
         };
         const { initialSnapIndex, animationConfig } = props;
         const animationDuration = animationConfig?.duration || DEFAULT_ANIMATION_DURATION;
@@ -278,7 +291,7 @@ export class ScrollBottomSheet extends Component {
             // @ts-ignore
             this.prevTranslateYOffset,
         ]));
-        this.translateY = cond(this.lockYOffset, this.lockYOffset, interpolate(add(translateYOffset, this.dragY, multiply(scrollY, -1)), {
+        this.translateY = cond(this.isLockYOffset, this.lockYOffset, interpolate(add(translateYOffset, this.dragY, multiply(scrollY, -1)), {
             inputRange: [openPosition, closedPosition],
             outputRange: [openPosition, closedPosition],
             extrapolate: Extrapolate.CLAMP,
@@ -290,24 +303,28 @@ export class ScrollBottomSheet extends Component {
         });
     }
     componentDidMount() {
-        if (this.props.keyboardAwared) {
-            this.kb_show = Keyboard.addListener('keyboardDidShow', event => {
+        this.kb_show = Keyboard.addListener('keyboardDidShow', event => {
+            if (this.props.keyboardAwared) {
                 const offset = this.props.keyboardTopOffset +
-                    Platform.select({ ios: 0, android: this.footerHeight._value });
+                    Platform.select({ ios: 0, android: this.footerHeight });
                 const keyboardHeight = event.endCoordinates.height;
                 const currentlyFocusedField = TextInput.State.currentlyFocusedField();
                 UIManager.measure(currentlyFocusedField, (originX, originY, width, height, pageX, pageY) => {
                     const gap = windowHeight - (pageY + height + offset) - keyboardHeight;
                     const snapPoints = this.getNormalisedSnapPoints();
                     if (gap < 0)
-                        this.lockYOffset.setValue(snapPoints[this.prevSnapIndex] + gap);
+                        this.lockToOffset(snapPoints[this.prevSnapIndex] + gap);
                 });
-            });
-            this.kb_hide = Keyboard.addListener('keyboardDidHide', () => {
-                this.lockYOffset.setValue(0);
+            }
+            this.props.onKeyboardShow(this);
+        });
+        this.kb_hide = Keyboard.addListener('keyboardDidHide', () => {
+            if (this.props.keyboardAwared) {
+                this.releaseLock();
                 this.snapTo(this.prevSnapIndex);
-            });
-        }
+            }
+            this.props.onKeyboardHide(this);
+        });
     }
     componentWillUnmount() {
         this.kb_show?.remove();
@@ -324,7 +341,7 @@ export class ScrollBottomSheet extends Component {
                 // @ts-ignore
                 {
                     transform: [{ translateY: this.translateY }],
-                    paddingBottom: this.footerHeight,
+                    paddingBottom: this.footerHeightAnim,
                 },
             ] },
             React.createElement(PanGestureHandler, { ref: this.drawerHandleRef, shouldCancelWhenOutside: false, simultaneousHandlers: this.masterDrawer, onGestureEvent: this.onHandleGestureEvent, onHandlerStateChange: this.onHandleGestureEvent },
@@ -398,7 +415,10 @@ export class ScrollBottomSheet extends Component {
                 React.createElement(View, { style: StyleSheet.absoluteFillObject, pointerEvents: "box-none" }, Content)));
         return (React.createElement(React.Fragment, null,
             WrappedContent,
-            React.createElement(View, { onLayout: e => this.footerHeight.setValue(e.nativeEvent.layout.height), style: {
+            React.createElement(View, { onLayout: e => {
+                    this.footerHeight = e.nativeEvent.layout.height;
+                    this.footerHeightAnim.setValue(e.nativeEvent.layout.height);
+                }, style: {
                     position: 'absolute',
                     left: 0,
                     right: 0,
@@ -413,6 +433,8 @@ ScrollBottomSheet.defaultProps = {
     keyboardAwared: true,
     keyboardTopOffset: 16,
     renderFooter: () => null,
+    onKeyboardShow: () => null,
+    onKeyboardHide: () => null,
 };
 export default ScrollBottomSheet;
 const styles = StyleSheet.create({

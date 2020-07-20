@@ -145,6 +145,14 @@ type CommonProps = {
    */
   keyboardTopOffset: number;
   /**
+   * should bottomsheet adjust itself on keyboard show/hide
+   */
+  onKeyboardShow: (ref: ScrollBottomSheet) => void;
+  /**
+   * should bottomsheet adjust itself on keyboard show/hide
+   */
+  onKeyboardHide: (ref: ScrollBottomSheet) => void;
+  /**
    * Render prop for the handle
    */
   renderHandle: () => React.ReactNode;
@@ -198,6 +206,8 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
     keyboardAwared: true,
     keyboardTopOffset: 16,
     renderFooter: () => null,
+    onKeyboardShow: () => null,
+    onKeyboardHide: () => null,
   };
   /**
    * Gesture Handler references
@@ -235,6 +245,10 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
   /**
    * Flag to indicate offset locking
    */
+  private isLockYOffset: Animated.Value<number> = new Value(0);
+  /**
+   * lockYOffset value
+   */
   private lockYOffset: Animated.Value<number> = new Value(0);
   /**
    * Keeps track of the current index
@@ -261,7 +275,8 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
   private destSnapPoint = new Value(0);
   private kb_show = null;
   private kb_hide = null;
-  private footerHeight: Animated.Value<number> = new Value(0); //footer height of stick footer
+  private footerHeightAnim: Animated.Value<number> = new Value(0); //footer height of stick footer
+  private footerHeight = 0;
 
   private lastSnap: Animated.Value<number>;
   private dragWithHandle = new Value(0);
@@ -576,7 +591,7 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
     );
 
     this.translateY = cond(
-      this.lockYOffset,
+      this.isLockYOffset,
       this.lockYOffset,
       interpolate(add(translateYOffset, this.dragY, multiply(scrollY, -1)), {
         inputRange: [openPosition, closedPosition],
@@ -628,12 +643,22 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
     this.nextSnapIndex.setValue(index);
   };
 
+  lockToOffset = offset => {
+    this.isLockYOffset.setValue(1);
+    this.lockYOffset.setValue(offset);
+    this.prevTranslateYOffset.setValue(offset);
+  };
+
+  releaseLock = () => {
+    this.isLockYOffset.setValue(0);
+  };
+
   componentDidMount() {
-    if (this.props.keyboardAwared) {
-      this.kb_show = Keyboard.addListener('keyboardDidShow', event => {
+    this.kb_show = Keyboard.addListener('keyboardDidShow', event => {
+      if (this.props.keyboardAwared) {
         const offset =
           this.props.keyboardTopOffset +
-          Platform.select({ ios: 0, android: this.footerHeight._value });
+          Platform.select({ ios: 0, android: this.footerHeight });
         const keyboardHeight = event.endCoordinates.height;
         const currentlyFocusedField = TextInput.State.currentlyFocusedField();
         UIManager.measure(
@@ -643,16 +668,20 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
               windowHeight - (pageY + height + offset) - keyboardHeight;
             const snapPoints = this.getNormalisedSnapPoints();
             if (gap < 0)
-              this.lockYOffset.setValue(snapPoints[this.prevSnapIndex] + gap);
+              this.lockToOffset(snapPoints[this.prevSnapIndex] + gap);
           }
         );
-      });
+      }
+      this.props.onKeyboardShow(this);
+    });
 
-      this.kb_hide = Keyboard.addListener('keyboardDidHide', () => {
-        this.lockYOffset.setValue(0);
+    this.kb_hide = Keyboard.addListener('keyboardDidHide', () => {
+      if (this.props.keyboardAwared) {
+        this.releaseLock();
         this.snapTo(this.prevSnapIndex);
-      });
-    }
+      }
+      this.props.onKeyboardHide(this);
+    });
   }
 
   componentWillUnmount() {
@@ -683,7 +712,7 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
           // @ts-ignore
           {
             transform: [{ translateY: this.translateY }],
-            paddingBottom: this.footerHeight,
+            paddingBottom: this.footerHeightAnim,
           },
         ]}
       >
@@ -869,9 +898,10 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
       <>
         {WrappedContent}
         <View
-          onLayout={e =>
-            this.footerHeight.setValue(e.nativeEvent.layout.height)
-          }
+          onLayout={e => {
+            this.footerHeight = e.nativeEvent.layout.height;
+            this.footerHeightAnim.setValue(e.nativeEvent.layout.height);
+          }}
           style={{
             position: 'absolute',
             left: 0,
