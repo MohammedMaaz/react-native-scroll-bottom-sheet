@@ -769,7 +769,7 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
           />
         )}
         {this.props.componentType === "ScrollView" &&
-          rest.scrollEnabled !== undefined && (
+          typeof rest.scrollEnabled !== "boolean" && (
             <Animated.Code
               exec={onChange(
                 this.isLockYOffset,

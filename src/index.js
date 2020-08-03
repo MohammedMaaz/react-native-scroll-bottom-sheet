@@ -362,7 +362,7 @@ export class ScrollBottomSheet extends Component {
                             ] }))))),
             this.props.animatedPosition && (React.createElement(Animated.Code, { exec: onChange(this.position, set(this.props.animatedPosition, this.position)) })),
             this.props.componentType === "ScrollView" &&
-                rest.scrollEnabled !== undefined && (React.createElement(Animated.Code, { exec: onChange(this.isLockYOffset, call([this.isLockYOffset], ([value]) => {
+                typeof rest.scrollEnabled !== "boolean" && (React.createElement(Animated.Code, { exec: onChange(this.isLockYOffset, call([this.isLockYOffset], ([value]) => {
                     if (value === 1)
                         this.scrollCompRef?.setNativeProps({
                             scrollEnabled: false,
