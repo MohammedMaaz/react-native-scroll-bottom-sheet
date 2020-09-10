@@ -1,12 +1,11 @@
 //@ts-nocheck
-import React, { Component } from 'react';
-import { Dimensions, FlatList, Platform, ScrollView, SectionList, StyleSheet, View, Keyboard, TextInput, UIManager, TouchableOpacity, TouchableHighlight, TouchableNativeFeedback, TouchableWithoutFeedback, } from 'react-native';
-import Animated, { abs, add, and, call, Clock, clockRunning, cond, Easing, eq, event, Extrapolate, greaterOrEq, greaterThan, interpolate, multiply, not, onChange, or, set, startClock, stopClock, sub, timing, Value, } from 'react-native-reanimated';
-import { NativeViewGestureHandler, PanGestureHandler, State as GestureState, TapGestureHandler, TouchableOpacity as RNGHTouchableOpacity, TouchableHighlight as RNGHTouchableHighlight, TouchableNativeFeedback as RNGHTouchableNativeFeedback, TouchableWithoutFeedback as RNGHTouchableWithoutFeedback, FlatList as RNGHFlatList, } from 'react-native-gesture-handler';
-const FlatListComponentType = 'FlatList';
-const ScrollViewComponentType = 'ScrollView';
-const SectionListComponentType = 'SectionList';
-const { height: windowHeight } = Dimensions.get('window');
+import React, { Component } from "react";
+import { Dimensions, FlatList, Platform, ScrollView, SectionList, StyleSheet, View, Keyboard, TextInput, UIManager, TouchableOpacity, TouchableHighlight, TouchableNativeFeedback, TouchableWithoutFeedback, } from "react-native";
+import Animated, { abs, add, and, call, Clock, clockRunning, cond, Easing, eq, event, Extrapolate, greaterOrEq, greaterThan, interpolate, multiply, not, onChange, or, set, startClock, stopClock, sub, timing, Value, } from "react-native-reanimated";
+import { NativeViewGestureHandler, PanGestureHandler, State as GestureState, TapGestureHandler, TouchableOpacity as RNGHTouchableOpacity, TouchableHighlight as RNGHTouchableHighlight, TouchableNativeFeedback as RNGHTouchableNativeFeedback, TouchableWithoutFeedback as RNGHTouchableWithoutFeedback, FlatList as RNGHFlatList, } from "react-native-gesture-handler";
+const FlatListComponentType = "FlatList";
+const ScrollViewComponentType = "ScrollView";
+const SectionListComponentType = "SectionList";
 const DRAG_TOSS = 0.05;
 const IOS_NORMAL_DECELERATION_RATE = 0.998;
 const ANDROID_NORMAL_DECELERATION_RATE = 0.985;
@@ -14,7 +13,7 @@ const DEFAULT_ANIMATION_DURATION = 250;
 const DEFAULT_EASING = Easing.inOut(Easing.linear);
 const imperativeScrollOptions = {
     [FlatListComponentType]: {
-        method: 'scrollToIndex',
+        method: "scrollToIndex",
         args: {
             index: 0,
             viewPosition: 0,
@@ -23,7 +22,7 @@ const imperativeScrollOptions = {
         },
     },
     [ScrollViewComponentType]: {
-        method: 'scrollTo',
+        method: "scrollTo",
         args: {
             x: 0,
             y: 0,
@@ -31,7 +30,7 @@ const imperativeScrollOptions = {
         },
     },
     [SectionListComponentType]: {
-        method: 'scrollToLocation',
+        method: "scrollToLocation",
         args: {
             itemIndex: 0,
             sectionIndex: 0,
@@ -71,7 +70,7 @@ export class ScrollBottomSheet extends Component {
         this.dragY = new Value(0);
         this.prevDragY = new Value(0);
         this.tempDestSnapPoint = new Value(0);
-        this.isAndroid = new Value(Number(Platform.OS === 'android'));
+        this.isAndroid = new Value(Number(Platform.OS === "android"));
         this.animationClock = new Clock();
         this.animationPosition = new Value(0);
         this.animationFinished = new Value(0);
@@ -85,13 +84,15 @@ export class ScrollBottomSheet extends Component {
         this.footerHeight = 0;
         this.dragWithHandle = new Value(0);
         this.scrollUpAndPullDown = new Value(0);
-        this.convertPercentageToDp = (str) => (Number(str.split('%')[0]) * (windowHeight - this.props.topInset)) / 100;
+        this.convertPercentageToDp = (str) => (Number(str.split("%")[0]) *
+            (this.props.windowHeight - this.props.topInset)) /
+            100;
         this.getNormalisedSnapPoints = () => {
-            return this.props.snapPoints.map(p => {
-                if (typeof p === 'string') {
+            return this.props.snapPoints.map((p) => {
+                if (typeof p === "string") {
                     return this.convertPercentageToDp(p);
                 }
-                else if (typeof p === 'number') {
+                else if (typeof p === "number") {
                     return p;
                 }
                 throw new Error(`Invalid type for value ${p}: ${typeof p}. It should be either a percentage string or a number`);
@@ -99,14 +100,14 @@ export class ScrollBottomSheet extends Component {
         };
         this.getScrollComponent = () => {
             switch (this.props.componentType) {
-                case 'FlatList':
+                case "FlatList":
                     return FlatList;
-                case 'ScrollView':
+                case "ScrollView":
                     return ScrollView;
-                case 'SectionList':
+                case "SectionList":
                     return SectionList;
                 default:
-                    throw new Error('Component type not supported: it should be one of `FlatList`, `ScrollView` or `SectionList`');
+                    throw new Error("Component type not supported: it should be one of `FlatList`, `ScrollView` or `SectionList`");
             }
         };
         this.snapTo = (index) => {
@@ -303,13 +304,16 @@ export class ScrollBottomSheet extends Component {
         });
     }
     componentDidMount() {
-        this.kb_show = Keyboard.addListener('keyboardDidShow', event => {
+        this.kb_show = Keyboard.addListener("keyboardDidShow", (event) => {
             if (this.props.keyboardAwared) {
-                const offset = this.props.keyboardTopOffset + Platform.select({ ios: 0, android: this.footerHeight });
+                const offset = this.props.keyboardTopOffset +
+                    Platform.select({ ios: 0, android: this.footerHeight });
                 const keyboardHeight = event.endCoordinates.height;
                 const currentlyFocusedField = TextInput.State.currentlyFocusedField();
                 UIManager.measure(currentlyFocusedField, (originX, originY, width, height, pageX, pageY) => {
-                    const gap = windowHeight - (pageY + height + offset) - keyboardHeight;
+                    const gap = this.props.windowHeight -
+                        (pageY + height + offset) -
+                        keyboardHeight;
                     const snapPoints = this.getNormalisedSnapPoints();
                     if (gap < 0)
                         this.lockToOffset(snapPoints[this.prevSnapIndex] + gap);
@@ -317,7 +321,7 @@ export class ScrollBottomSheet extends Component {
             }
             this.props.onKeyboardShow(this, event);
         });
-        this.kb_hide = Keyboard.addListener('keyboardDidHide', (event) => {
+        this.kb_hide = Keyboard.addListener("keyboardDidHide", (event) => {
             if (this.props.keyboardAwared) {
                 this.releaseLock();
                 this.snapTo(this.prevSnapIndex);
@@ -366,11 +370,11 @@ export class ScrollBottomSheet extends Component {
                         // This prevents the scroll glide from happening on Android when pulling down with inertia.
                         // It's not perfect, but does the job for now
                         const { method, args } = imperativeScrollOptions[this.props.componentType];
-                        if ((this.props.componentType === 'FlatList' &&
+                        if ((this.props.componentType === "FlatList" &&
                             (this.props?.data?.length || 0) > 0) ||
-                            (this.props.componentType === 'SectionList' &&
+                            (this.props.componentType === "SectionList" &&
                                 this.props.sections.length > 0) ||
-                            this.props.componentType === 'ScrollView') {
+                            this.props.componentType === "ScrollView") {
                             // @ts-ignore
                             this.props.innerRef.current?.getNode()[method](args);
                         }
@@ -404,7 +408,7 @@ export class ScrollBottomSheet extends Component {
         let WrappedContent;
         // On Android, having an intermediary view with pointerEvents="box-none", breaks the
         // waitFor logic
-        if (Platform.OS === 'android')
+        if (Platform.OS === "android")
             WrappedContent = (React.createElement(TapGestureHandler, { maxDurationMs: 100000, ref: this.masterDrawer, maxDeltaY: initialSnap - this.getNormalisedSnapPoints()[0], shouldCancelWhenOutside: false }, Content));
         // On iOS, We need to wrap the content on a view with PointerEvents box-none
         // So that we can start scrolling automatically when reaching the top without
@@ -414,11 +418,11 @@ export class ScrollBottomSheet extends Component {
                 React.createElement(View, { style: StyleSheet.absoluteFillObject, pointerEvents: "box-none" }, Content)));
         return (React.createElement(React.Fragment, null,
             WrappedContent,
-            React.createElement(View, { onLayout: e => {
+            React.createElement(View, { onLayout: (e) => {
                     this.footerHeight = e.nativeEvent.layout.height;
                     this.footerHeightAnim.setValue(e.nativeEvent.layout.height);
                 }, style: {
-                    position: 'absolute',
+                    position: "absolute",
                     left: 0,
                     right: 0,
                     bottom: 0,
@@ -434,6 +438,7 @@ ScrollBottomSheet.defaultProps = {
     renderFooter: () => null,
     onKeyboardShow: () => null,
     onKeyboardHide: () => null,
+    windowHeight: Dimensions.get("window").height,
 };
 export default ScrollBottomSheet;
 const styles = StyleSheet.create({
@@ -441,26 +446,26 @@ const styles = StyleSheet.create({
         flex: 1,
     },
 });
-export const BSTouchableOpacity = props => {
-    if (Platform.OS === 'android') {
+export const BSTouchableOpacity = (props) => {
+    if (Platform.OS === "android") {
         return React.createElement(RNGHTouchableOpacity, Object.assign({}, props));
     }
     return React.createElement(TouchableOpacity, Object.assign({}, props));
 };
-export const BSTouchableHightlight = props => {
-    if (Platform.OS === 'android') {
+export const BSTouchableHightlight = (props) => {
+    if (Platform.OS === "android") {
         return React.createElement(RNGHTouchableHighlight, Object.assign({}, props));
     }
     return React.createElement(TouchableHighlight, Object.assign({}, props));
 };
-export const BSTouchableNativeFeedback = props => {
-    if (Platform.OS === 'android') {
+export const BSTouchableNativeFeedback = (props) => {
+    if (Platform.OS === "android") {
         return React.createElement(RNGHTouchableNativeFeedback, Object.assign({}, props));
     }
     return React.createElement(TouchableNativeFeedback, Object.assign({}, props));
 };
-export const BSTouchableWithoutFeedback = props => {
-    if (Platform.OS === 'android') {
+export const BSTouchableWithoutFeedback = (props) => {
+    if (Platform.OS === "android") {
         return React.createElement(RNGHTouchableWithoutFeedback, Object.assign({}, props));
     }
     return React.createElement(TouchableWithoutFeedback, Object.assign({}, props));

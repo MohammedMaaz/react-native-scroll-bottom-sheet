@@ -1,5 +1,5 @@
 //@ts-nocheck
-import React, { Component, RefObject } from 'react';
+import React, { Component, RefObject } from "react";
 import {
   Dimensions,
   FlatList,
@@ -19,7 +19,7 @@ import {
   TouchableHighlight,
   TouchableNativeFeedback,
   TouchableWithoutFeedback,
-} from 'react-native';
+} from "react-native";
 import Animated, {
   abs,
   add,
@@ -45,7 +45,7 @@ import Animated, {
   sub,
   timing,
   Value,
-} from 'react-native-reanimated';
+} from "react-native-reanimated";
 import {
   NativeViewGestureHandler,
   PanGestureHandler,
@@ -57,14 +57,13 @@ import {
   TouchableNativeFeedback as RNGHTouchableNativeFeedback,
   TouchableWithoutFeedback as RNGHTouchableWithoutFeedback,
   FlatList as RNGHFlatList,
-} from 'react-native-gesture-handler';
-import { Assign } from 'utility-types';
+} from "react-native-gesture-handler";
+import { Assign } from "utility-types";
 
-const FlatListComponentType = 'FlatList' as const;
-const ScrollViewComponentType = 'ScrollView' as const;
-const SectionListComponentType = 'SectionList' as const;
+const FlatListComponentType = "FlatList" as const;
+const ScrollViewComponentType = "ScrollView" as const;
+const SectionListComponentType = "SectionList" as const;
 
-const { height: windowHeight } = Dimensions.get('window');
 const DRAG_TOSS = 0.05;
 const IOS_NORMAL_DECELERATION_RATE = 0.998;
 const ANDROID_NORMAL_DECELERATION_RATE = 0.985;
@@ -72,7 +71,7 @@ const DEFAULT_ANIMATION_DURATION = 250;
 const DEFAULT_EASING = Easing.inOut(Easing.linear);
 const imperativeScrollOptions = {
   [FlatListComponentType]: {
-    method: 'scrollToIndex',
+    method: "scrollToIndex",
     args: {
       index: 0,
       viewPosition: 0,
@@ -81,7 +80,7 @@ const imperativeScrollOptions = {
     },
   },
   [ScrollViewComponentType]: {
-    method: 'scrollTo',
+    method: "scrollTo",
     args: {
       x: 0,
       y: 0,
@@ -89,7 +88,7 @@ const imperativeScrollOptions = {
     },
   },
   [SectionListComponentType]: {
-    method: 'scrollToLocation',
+    method: "scrollToLocation",
     args: {
       itemIndex: 0,
       sectionIndex: 0,
@@ -144,11 +143,15 @@ type CommonProps = {
    * offset between the keyboard top and the input field after keyboard adjustment
    */
   keyboardTopOffset: number;
-   /**
+  /**
+   * use a user provided window height instead of default Dimension API's window height for calculations
+   */
+  windowHeight: number;
+  /**
    * should bottomsheet adjust itself on keyboard show/hide
    */
   onKeyboardShow: (ref: ScrollBottomSheet) => void;
-   /**
+  /**
    * should bottomsheet adjust itself on keyboard show/hide
    */
   onKeyboardHide: (ref: ScrollBottomSheet) => void;
@@ -206,8 +209,9 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
     keyboardAwared: true,
     keyboardTopOffset: 16,
     renderFooter: () => null,
-    onKeyboardShow: ()=>null,
-    onKeyboardHide: ()=>null,
+    onKeyboardShow: () => null,
+    onKeyboardHide: () => null,
+    windowHeight: Dimensions.get("window").height,
   };
   /**
    * Gesture Handler references
@@ -220,12 +224,12 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
   /**
    * ScrollView prop
    */
-  private onScrollBeginDrag: ScrollViewProps['onScrollBeginDrag'];
+  private onScrollBeginDrag: ScrollViewProps["onScrollBeginDrag"];
   /**
    * Pan gesture handler events for drawer handle and content
    */
-  private onHandleGestureEvent: PanGestureHandlerProperties['onGestureEvent'];
-  private onDrawerGestureEvent: PanGestureHandlerProperties['onGestureEvent'];
+  private onHandleGestureEvent: PanGestureHandlerProperties["onGestureEvent"];
+  private onDrawerGestureEvent: PanGestureHandlerProperties["onGestureEvent"];
   /**
    * Main Animated Value that drives the top position of the UI drawer at any point in time
    */
@@ -263,7 +267,7 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
   private dragY = new Value(0);
   private prevDragY = new Value(0);
   private tempDestSnapPoint = new Value(0);
-  private isAndroid = new Value(Number(Platform.OS === 'android'));
+  private isAndroid = new Value(Number(Platform.OS === "android"));
   private animationClock = new Clock();
   private animationPosition = new Value(0);
   private animationFinished = new Value(0);
@@ -294,7 +298,9 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
   >;
 
   convertPercentageToDp = (str: string) =>
-    (Number(str.split('%')[0]) * (windowHeight - this.props.topInset)) / 100;
+    (Number(str.split("%")[0]) *
+      (this.props.windowHeight - this.props.topInset)) /
+    100;
 
   constructor(props: Props<T>) {
     super(props);
@@ -608,10 +614,10 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
   }
 
   private getNormalisedSnapPoints = () => {
-    return this.props.snapPoints.map(p => {
-      if (typeof p === 'string') {
+    return this.props.snapPoints.map((p) => {
+      if (typeof p === "string") {
         return this.convertPercentageToDp(p);
-      } else if (typeof p === 'number') {
+      } else if (typeof p === "number") {
         return p;
       }
 
@@ -623,15 +629,15 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
 
   private getScrollComponent = () => {
     switch (this.props.componentType) {
-      case 'FlatList':
+      case "FlatList":
         return FlatList;
-      case 'ScrollView':
+      case "ScrollView":
         return ScrollView;
-      case 'SectionList':
+      case "SectionList":
         return SectionList;
       default:
         throw new Error(
-          'Component type not supported: it should be one of `FlatList`, `ScrollView` or `SectionList`'
+          "Component type not supported: it should be one of `FlatList`, `ScrollView` or `SectionList`"
         );
     }
   };
@@ -647,39 +653,43 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
     this.isLockYOffset.setValue(1);
     this.lockYOffset.setValue(offset);
     this.prevTranslateYOffset.setValue(offset);
-  }
+  };
 
-  releaseLock = ()=> {
+  releaseLock = () => {
     this.isLockYOffset.setValue(0);
-  }
+  };
 
   componentDidMount() {
-      this.kb_show = Keyboard.addListener('keyboardDidShow', event => {
-        if (this.props.keyboardAwared) {
-          const offset =
-            this.props.keyboardTopOffset + Platform.select({ ios: 0, android: this.footerHeight });
-          const keyboardHeight = event.endCoordinates.height;
-          const currentlyFocusedField = TextInput.State.currentlyFocusedField();
-          UIManager.measure(
-            currentlyFocusedField,
-            (originX, originY, width, height, pageX, pageY) => {
-              const gap =
-                windowHeight - (pageY + height + offset) - keyboardHeight;
-              const snapPoints = this.getNormalisedSnapPoints();
-              if (gap < 0)  this.lockToOffset(snapPoints[this.prevSnapIndex] + gap);
-            }
-          );
-        }
-        this.props.onKeyboardShow(this, event);
-      });
+    this.kb_show = Keyboard.addListener("keyboardDidShow", (event) => {
+      if (this.props.keyboardAwared) {
+        const offset =
+          this.props.keyboardTopOffset +
+          Platform.select({ ios: 0, android: this.footerHeight });
+        const keyboardHeight = event.endCoordinates.height;
+        const currentlyFocusedField = TextInput.State.currentlyFocusedField();
+        UIManager.measure(
+          currentlyFocusedField,
+          (originX, originY, width, height, pageX, pageY) => {
+            const gap =
+              this.props.windowHeight -
+              (pageY + height + offset) -
+              keyboardHeight;
+            const snapPoints = this.getNormalisedSnapPoints();
+            if (gap < 0)
+              this.lockToOffset(snapPoints[this.prevSnapIndex] + gap);
+          }
+        );
+      }
+      this.props.onKeyboardShow(this, event);
+    });
 
-      this.kb_hide = Keyboard.addListener('keyboardDidHide', (event) => {
-        if (this.props.keyboardAwared) {
-          this.releaseLock();
-          this.snapTo(this.prevSnapIndex);
-        }
-        this.props.onKeyboardHide(this, event);
-      });
+    this.kb_hide = Keyboard.addListener("keyboardDidHide", (event) => {
+      if (this.props.keyboardAwared) {
+        this.releaseLock();
+        this.snapTo(this.prevSnapIndex);
+      }
+      this.props.onKeyboardHide(this, event);
+    });
   }
 
   componentWillUnmount() {
@@ -793,11 +803,11 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
                   ];
 
                   if (
-                    (this.props.componentType === 'FlatList' &&
+                    (this.props.componentType === "FlatList" &&
                       (this.props?.data?.length || 0) > 0) ||
-                    (this.props.componentType === 'SectionList' &&
+                    (this.props.componentType === "SectionList" &&
                       this.props.sections.length > 0) ||
-                    this.props.componentType === 'ScrollView'
+                    this.props.componentType === "ScrollView"
                   ) {
                     // @ts-ignore
                     this.props.innerRef.current?.getNode()[method](args);
@@ -865,7 +875,7 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
     let WrappedContent;
     // On Android, having an intermediary view with pointerEvents="box-none", breaks the
     // waitFor logic
-    if (Platform.OS === 'android')
+    if (Platform.OS === "android")
       WrappedContent = (
         <TapGestureHandler
           maxDurationMs={100000}
@@ -896,12 +906,12 @@ export class ScrollBottomSheet<T extends any> extends Component<Props<T>> {
       <>
         {WrappedContent}
         <View
-          onLayout={e => {
-            this.footerHeight = e.nativeEvent.layout.height
-            this.footerHeightAnim.setValue(e.nativeEvent.layout.height)
+          onLayout={(e) => {
+            this.footerHeight = e.nativeEvent.layout.height;
+            this.footerHeightAnim.setValue(e.nativeEvent.layout.height);
           }}
           style={{
-            position: 'absolute',
+            position: "absolute",
             left: 0,
             right: 0,
             bottom: 0,
@@ -922,32 +932,32 @@ const styles = StyleSheet.create({
   },
 });
 
-export const BSTouchableOpacity = props => {
-  if (Platform.OS === 'android') {
+export const BSTouchableOpacity = (props) => {
+  if (Platform.OS === "android") {
     return <RNGHTouchableOpacity {...props} />;
   }
 
   return <TouchableOpacity {...props} />;
 };
 
-export const BSTouchableHightlight = props => {
-  if (Platform.OS === 'android') {
+export const BSTouchableHightlight = (props) => {
+  if (Platform.OS === "android") {
     return <RNGHTouchableHighlight {...props} />;
   }
 
   return <TouchableHighlight {...props} />;
 };
 
-export const BSTouchableNativeFeedback = props => {
-  if (Platform.OS === 'android') {
+export const BSTouchableNativeFeedback = (props) => {
+  if (Platform.OS === "android") {
     return <RNGHTouchableNativeFeedback {...props} />;
   }
 
   return <TouchableNativeFeedback {...props} />;
 };
 
-export const BSTouchableWithoutFeedback = props => {
-  if (Platform.OS === 'android') {
+export const BSTouchableWithoutFeedback = (props) => {
+  if (Platform.OS === "android") {
     return <RNGHTouchableWithoutFeedback {...props} />;
   }
 
